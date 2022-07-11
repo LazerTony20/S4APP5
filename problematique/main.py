@@ -92,34 +92,10 @@ j = 0
 #    Son_Guitar[j] = Somme_amp_signal1 * np.sin(w1 * (j / Fs1) + Somme_xphase)  # *EnvTemp1[0:32]
 #    j = j+1
 Son_Guitar = Somme_Sinus*(1/1000)*EnvTemp1[0:N1]
-#Son_Guitar = Somme_amp_signal1*np.sin(w1*(n/44100) + Somme_xphase)#*EnvTemp1[0:32]
 #Son_Basson = amp_signal2*np.sin(w2 + yphase)*EnvTemp2
 
-#print(xphase)
-print(amp_signal1)
-#print(EnvTemp1)
-#plt.plot(signal1)
-plt.figure()
-plt.plot(Son_Guitar)
-#plt.figure()
-#plt.plot(EnvTemp1)
-#plt.figure()
-#plt.plot(x[peaks1[1:33]])
-#print(x[peaks1[1:33]])
-
-#plt.title("Fast Fourier transform")
-#plt.xlabel("Frequency")
-#plt.ylabel("Amplitude")
-#plt.plot(np.log(x))
-
-#plt.figure()
-#plt.plot(np.fft.fftshift(np.abs(x)))
-
-#plt.plot(np.fft.fftshift(np.abs(y)))
-#plt.plot(xphase)
 plt.show()
 print(Son_Guitar)
 sf.write('son_synth_guitar.wav', Son_Guitar, samplerate=Fs1)
-#sf.write('son_filtre_basson.wav', Son_Basson, samplerate=len(Son_Basson))
+#sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
 
-#plt.show()
