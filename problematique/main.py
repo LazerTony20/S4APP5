@@ -62,7 +62,18 @@ K = 885
 #
 #====================================================================
 #Filtre coupe-Bande du signal 2
-signal2filtre = signal2
+w0 = 1000
+w1 = (1020 - 980)/2
+N = 1024
+delta = np.zeros(N-2)
+delta[0] = 1
+n1 = np.arange(1, N-1, 1)
+hlp = (1/N)*(np.sin(np.pi*n1*N/2)/np.sin(np.pi*n1/2))
+hbs = delta - 2*hlp*np.cos(w0*n1)
+eee = np.fft.fft(hbs)
+ree = np.fft.fft(signal2)
+gee = np.convolve(eee, ree)
+signal2filtre = np.fft.ifft(gee)
 #====================================================================
 #
 #
@@ -150,15 +161,11 @@ Freq_FA = 0.749*signal1_frequences
 Freq_RE = 0.630*signal1_frequences
 
 #Compilation des sons
-#Somme_amp_signal1 = 0
-#Somme_signal1phase = 0
 n = np.arange(N1)
 i = 1
 Somme_SinusLaD = signal1_amplitude[0] * np.sin(2 * np.pi * signal1_frequences[0] * (n / Fs1) + signal1phase[0])
 while i < 31:
     Somme_SinusLaD = Somme_SinusLaD + signal1_amplitude[i] * np.sin(2 * np.pi * signal1_frequences[i] * (n / Fs1) + signal1phase[i])
-    #Somme_amp_signal1 = Somme_amp_signal1 + amp_signal1[i]
-    #Somme_signal1phase = Somme_signal1phase + signal1phase[i]
     i = i + 1
 
 i = 1
@@ -198,14 +205,14 @@ Son_SOL = (Somme_SinusSol*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
 Son_MIb = (Somme_SinusMIb*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
 Son_FA = (Somme_SinusFA*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
 Son_RE = (Somme_SinusRE*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
-#Son_Basson = amp_signal2*np.sin(w2 + yphase)*EnvTemp2
+Son_Basson = amp_signal2*np.sin(w2 + signal2phase)*EnvTemp2
 
 chanson = np.concatenate((Son_SOL, Son_SOL, Son_SOL, Son_MIb, np.zeros(grandeur), Son_FA, Son_FA, Son_FA, Son_RE))
 #plt.figure()
 #plt.plot(chanson)
 
 sf.write('son_synth_guitar.wav', chanson, samplerate=Fs1)
-#sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
+sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
 plt.show()
 
 
