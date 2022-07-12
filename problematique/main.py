@@ -62,14 +62,29 @@ K = 885
 #
 #====================================================================
 #Filtre coupe-Bande du signal 2
+#w0 = 1000
+#w1 = (1020 - 980)/2
+#N = 1024
+#delta = np.zeros(N-2)
+#delta[0] = 1
+#n1 = np.arange(1, N-1, 1)
+#hlp = (1/N)*(np.sin(np.pi*n1*N/2)/np.sin(np.pi*n1/2))
+#hbs = delta - 2*hlp*np.cos(w0*n1)
+#eee = np.fft.fft(hbs)
+#ree = np.fft.fft(signal2)
+#gee = np.convolve(eee, ree)
+#signal2filtre = np.fft.ifft(gee)
 n_cp = np.arange(1024)
 K_cp = 3
 N = 1024
 Filtre_cp = 1 -(K_cp/(N/2))*np.cos(K_cp*np.pi/8*n_cp[0])
-Filtre_cp = 0 - ((np.sin(K_cp*np.pi*n_cp[1:N]/N)/np.sin(np.pi*n_cp[1:N]/N))/(N/2))*np.cos(K_cp*np.pi/8*n_cp[1:N])
+Filtre_cp = Filtre_cp + 0 - ((np.sin(K_cp*np.pi*n_cp[1:N]/N)/np.sin(np.pi*n_cp[1:N]/N))/(N/2))*np.cos(K_cp*np.pi/8*n_cp[1:N])
 signal2filtre = signal2 #np.convolve(np,abs(signal2, Filtre_cp))
-plt.figure()
+plt.figure('Réponse impulsion h[n] du Coupe-Bande')
 plt.plot(Filtre_cp)
+plt.title('Réponse impulsion h[n] du Coupe-Bande')
+plt.xlabel('categories')
+plt.ylabel('values')
 
 #====================================================================
 #
@@ -153,37 +168,67 @@ plt.plot(signal2_peaks[0:32], 20*np.log10(signal2_amplitude), 'X')
 #====================================================================
 #Transformation des notes de musique
 Freq_SOL = 0.841*signal1_frequences
-Freq_MI = 0.707*signal1_frequences
+Freq_MIb = 0.667*signal1_frequences
 Freq_FA = 0.749*signal1_frequences
 Freq_RE = 0.630*signal1_frequences
 
 #Compilation des sons
-i = 0
 n = np.arange(N1)
 n2 = np.arange(N2)
-Somme_amp_signal1 = 0
-Somme_signal1phase = 0
-Somme_Sinus = signal1_amplitude[0] * np.sin(2 * np.pi * signal1_frequences[0] * (n / Fs1) + signal1phase[0])
-Somme_Sinus2 = signal2_amplitude[0] * np.sin(2 * np.pi * signal2_frequences[0] * (n2 / Fs2) + signal2phase[0])
+i = 1
+Somme_SinusLaD = signal1_amplitude[0] * np.sin(2 * np.pi * signal1_frequences[0] * (n / Fs1) + signal1phase[0])
 while i < 31:
-    Somme_Sinus = Somme_Sinus + signal1_amplitude[i] * np.sin(2 * np.pi * signal1_frequences[i] * (n / Fs1) + signal1phase[i])
-    Somme_Sinus2 = Somme_Sinus2 + signal2_amplitude[i] * np.sin(2 * np.pi * signal2_frequences[i] * (n2 / Fs2) + signal2phase[i])
-    Somme_amp_signal1 = Somme_amp_signal1 + amp_signal1[i]
-    Somme_signal1phase = Somme_signal1phase + signal1phase[i]
+    Somme_SinusLaD = Somme_SinusLaD + signal1_amplitude[i] * np.sin(2 * np.pi * signal1_frequences[i] * (n / Fs1) + signal1phase[i])
     i = i + 1
 
-Son_Guitar = np.zeros(N1)
+i = 1
+Somme_SinusSol = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_SOL[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusSol = Somme_SinusSol + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_SOL[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+i = 1
+Somme_SinusMIb = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_MIb[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusMIb = Somme_SinusMIb + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_MIb[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+i = 1
+Somme_SinusFA = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_FA[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusFA = Somme_SinusFA + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_FA[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+i = 1
+Somme_SinusRE = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_RE[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusRE = Somme_SinusRE + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_RE[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+Somme_Sinus2 = signal2_amplitude[0] * np.sin(2 * np.pi * signal2_frequences[0] * (n2 / Fs2) + signal2phase[0])
+while i < 31:
+    Somme_Sinus2 = Somme_Sinus2 + signal2_amplitude[i] * np.sin(2 * np.pi * signal2_frequences[i] * (n2 / Fs2) + signal2phase[i])
+    i = i + 1
+Son_Lad = np.zeros(N1)
+Son_SOL = np.zeros(N1)
+Son_MIb = np.zeros(N1)
+Son_FA = np.zeros(N1)
+Son_RE = np.zeros(N1)
 #j = 0
 #while j < N1:
 #    w1 = 2 * np.pi * (j/N1)*Fs1
 #    w2 = 2 * np.pi * freq_peaks2
 #    Son_Guitar[j] = Somme_amp_signal1 * np.sin(w1 * (j / Fs1) + Somme_xphase)  # *EnvTemp1[0:32]
 #    j = j+1
-Son_Guitar = Somme_Sinus*(1/1000)*EnvTemp1[0:N1]
+grandeur = 60000
+Son_LaD = (Somme_SinusLaD*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_SOL = (Somme_SinusSol*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_MIb = (Somme_SinusMIb*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_FA = (Somme_SinusFA*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_RE = (Somme_SinusRE*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
 Son_Basson = Somme_Sinus2*(1/1000)*EnvTemp2[0:N2]
 
+chanson = np.concatenate((Son_SOL, Son_SOL, Son_SOL, Son_MIb, np.zeros(grandeur), Son_FA, Son_FA, Son_FA, Son_RE))
+#plt.figure()
+#plt.plot(chanson)
 
-sf.write('son_synth_guitar.wav', Son_Guitar, samplerate=Fs1)
+sf.write('son_synth_guitar.wav', chanson, samplerate=Fs1)
 sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
 plt.show()
 
