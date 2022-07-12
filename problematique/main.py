@@ -1,85 +1,217 @@
-# This is a sample Python script.
-
-# Press Maj+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+#====================================================================
+#====================================================================
+# Auteurs       : Jérémy Goulet et Anthony Royer
+# Projet        : Problématique APP5 S4 Génie Électrique
+# Date          : 2022-07-11
+# Commentaires  : ré diese est mi-bémol
+#                 dirak dans le temps c juste un 1 a la position zéro
+#                 et le reste des zéros
+#
+#====================================================================
+#====================================================================
+#
+#
+#
+#====================================================================
+#Imports de librairies
 import numpy as np
 import soundfile as sf
 import matplotlib.pyplot as plt
-from scipy.signal import find_peaks
-
-
+import scipy.signal as sci
+#====================================================================
+#
+#
+#
+#====================================================================
+#Importer mes signaux de mes 2 fichiers
 signal1, Fs1 = sf.read('note_guitare_LAd.wav')
 signal2, Fs2 = sf.read('note_basson_plus_sinus_1000_Hz.wav')
-N1 = len(signal1)
-N2 = len(signal2)
+#====================================================================
+#
+#
+#
+#====================================================================
+#Application de ma fenêtre
+signal1_lenght = len(signal1)   #160'000
+w1 = np.hamming(signal1_lenght)
+signal1fenetre = signal1*w1
+signal2_lenght = len(signal2)   #135'051
+w2 = np.hamming(signal2_lenght)
+signal2fenetre = signal2*w2
+#====================================================================
+#
+#
+#
+#====================================================================
+#Déterminer graphiquement la valeur de l'ordre du filtre
+omega = np.pi/1000
+MaxK = 10000
+Kpts = np.arange(1, MaxK, 1) #numpy.arange(start, stop, step, dtype)
+plt.figure("Graphique de l'ordre")
+Xomega = (1/Kpts)*(np.sin(omega*Kpts/2)/np.sin(omega/2))
+GainM3dB = 0.707*(Kpts/Kpts)
+plt.axvline(885, color='red', label='N ordre')
+plt.plot(np.abs(Xomega))
+plt.ylim(0, 1)
+plt.xlim(0, MaxK)
+plt.plot(Kpts, GainM3dB)
 K = 885
-Fc = np.pi/1000
-w = 2*np.pi*Fc
-print(signal1)
-print(signal2)
-
-x = np.fft.fft(signal1)
-y = np.fft.fft(signal2)
-#Phase complexe avec composante imaginaire
-#xphase = x/np.abs(x)
-#yphase = y/np.abs(y)
-
-#print(xphase)
-#print(np.angle(x))
-
-#Phase pas en complexe
-#xphase = np.angle(x)
-#yphase = np.angle(y)
-#On trouve les INDEX des harmoniques souhaité
-peaks1 = np.asarray(find_peaks(x, distance=1000))[0]
-peaks2 = np.asarray(find_peaks(y, distance=600))[0]
-
-#Conversion des 32 premiers INDEX en Hz
-freq_peaks1 = (peaks1[1:33]/N1)*Fs1
-freq_peaks2 = (peaks2[1:33]/N2)*Fs2
-#Phase (J'ai des doutes à savoir quel méthode est véridict)
-xphase = np.angle(peaks1[1:33]) #peaks1[1:33]/np.abs(peaks1[1:33])
-yphase = np.angle(peaks2[1:33]) #peaks2[1:33]/np.abs(peaks2[1:33])
-#Amplitude
-amp_signal1 = np.abs(peaks1[1:33])
-amp_signal2 = np.abs(peaks2[1:33])
-
-#plt.plot(xphase)
-#plt.plot(yphase)
-#plt.figure()
-#plt.plot(amp_signal1)
-#plt.plot(amp_signal2)
-
-w1 = 2*np.pi*peaks1[1:33]
-w2 = 2*np.pi*peaks2[1:33]
+#====================================================================
+#
+#
+#
+#====================================================================
+#Filtre coupe-Bande du signal 2
+signal2filtre = signal2
+#====================================================================
+#
+#
+#
+#====================================================================
 #Enveloppe Temporelle
-EnvTemp1 = (np.sin(w*K/2)/np.sin(w/2))/K
-EnvTemp2 = (np.sin(w*K/2)/np.sin(w/2))/K
+EnvTemp1 = np.convolve(np.abs(signal1), (np.ones(K)/K))
+EnvTemp2 = np.convolve(np.abs(signal2filtre), (np.ones(K)/K))
+plt.figure('Enveloppe Temporelle Signal LaD')
+plt.plot(signal1)
+plt.plot(EnvTemp1)
+plt.figure('Enveloppe Temporelle Signal Basson')
+plt.plot(signal2)
+plt.plot(EnvTemp2)
+#====================================================================
+#
+#
+#
+#====================================================================
+#Application de mes FFT
+signal1_fft = np.fft.fft(signal1fenetre)
+signal2_fft = np.fft.fft(signal2fenetre)
+#plt.figure('FFTs')
+#plt.subplot(211)
+#plt.xlim(0, signal1_lenght)
+#plt.plot(20*np.log10(signal1_fft))   #subplot(nrows, ncols, index, **kwargs)
+#plt.subplot(212)
+#plt.xlim(0, signal2_lenght)
+#plt.plot(20*np.log10(signal2_fft))   #subplot(nrows, ncols, index, **kwargs)
+#====================================================================
+#
+#
+#
+#====================================================================
+#Acquisition des paramètres de mes 2 signaux
+N1 = len(signal1)   #160'000
+N2 = len(signal2)   #135'051
+signal1_peaks, _ = sci.find_peaks(20*np.log10(signal1_fft), height=-20, distance=1000, prominence=40)
+signal2_peaks, _ = sci.find_peaks(20*np.log10(signal2_fft), distance=500)
+#distance = distance entre chaque peek (distance horizontale)   #height #prominance
 
-#Filtre
-Filtre_bp = ((np.sin(5*np.pi*n/32)/np.sin(w/2))/K/16)*np.cos(5*np.pi/8*n)
+#Conversion des INDEX en Hz
+freq_peaks1 = np.fft.fftfreq(N1, d=(1/Fs1))         #(peaks1[1:33]/N1)*Fs1
+freq_peaks2 = np.fft.fftfreq(N2, d=(1/Fs2))
+signal1_frequences = freq_peaks1[signal1_peaks[0:32]]
+signal2_frequences = freq_peaks2[signal2_peaks[0:32]]
+
+#Phase
+signal1phase = np.angle(signal1_fft)
+signal2phase = np.angle(signal2_fft)
+signal1Phases_peaks = signal1phase[signal1_peaks[0:32]]
+signal2Phases_peaks = signal2phase[signal2_peaks[0:32]]
+
+#Amplitude
+amp_signal1 = np.abs(signal1_fft)
+amp_signal2 = np.abs(signal2_fft)
+signal1_amplitude = amp_signal1[signal1_peaks[0:32]]
+signal2_amplitude = amp_signal2[signal2_peaks[0:32]]
+#Affichage
+plt.figure('Phases')
+plt.subplot(211)
+plt.xlim(0, signal1_lenght)
+plt.plot(20*np.log10(signal1phase))
+plt.subplot(212)
+plt.plot(20*np.log10(signal2phase))
+plt.xlim(0, signal2_lenght)
+plt.figure('Amplitudes')
+plt.subplot(211)
+#plt.xlim(0, signal1_lenght)
+plt.plot(20*np.log10(amp_signal1))
+plt.plot(signal1_peaks[0:32], 20*np.log10(signal1_amplitude), 'X')
+plt.subplot(212)
+#plt.xlim(0, signal2_lenght)
+plt.plot(20*np.log10(amp_signal2))
+plt.plot(signal2_peaks[0:32], 20*np.log10(signal2_amplitude), 'X')
+#====================================================================
+#
+#
+#
+#====================================================================
+#Transformation des notes de musique
+Freq_SOL = 0.841*signal1_frequences
+Freq_MIb = 0.667*signal1_frequences
+Freq_FA = 0.749*signal1_frequences
+Freq_RE = 0.630*signal1_frequences
 
 #Compilation des sons
-Son_Guitar = amp_signal1*np.sin(w1 + xphase)*EnvTemp1
-Son_Basson = amp_signal2*np.sin(w2 + yphase)*EnvTemp2
-plt.plot(EnvTemp1)
-print(xphase)
-print(amp_signal1)
-print(EnvTemp1)
+#Somme_amp_signal1 = 0
+#Somme_signal1phase = 0
+n = np.arange(N1)
+i = 1
+Somme_SinusLaD = signal1_amplitude[0] * np.sin(2 * np.pi * signal1_frequences[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusLaD = Somme_SinusLaD + signal1_amplitude[i] * np.sin(2 * np.pi * signal1_frequences[i] * (n / Fs1) + signal1phase[i])
+    #Somme_amp_signal1 = Somme_amp_signal1 + amp_signal1[i]
+    #Somme_signal1phase = Somme_signal1phase + signal1phase[i]
+    i = i + 1
 
-#plt.title("Fast Fourier transform")
-#plt.xlabel("Frequency")
-#plt.ylabel("Amplitude")
-#plt.plot(np.log(x))
+i = 1
+Somme_SinusSol = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_SOL[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusSol = Somme_SinusSol + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_SOL[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+i = 1
+Somme_SinusMIb = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_MIb[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusMIb = Somme_SinusMIb + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_MIb[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+i = 1
+Somme_SinusFA = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_FA[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusFA = Somme_SinusFA + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_FA[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+i = 1
+Somme_SinusRE = signal1_amplitude[0] * np.sin(2 * np.pi * Freq_RE[0] * (n / Fs1) + signal1phase[0])
+while i < 31:
+    Somme_SinusRE = Somme_SinusRE + signal1_amplitude[i] * np.sin(2 * np.pi * Freq_RE[i] * (n / Fs1) + signal1phase[i])
+    i = i + 1
+Son_Lad = np.zeros(N1)
+Son_SOL = np.zeros(N1)
+Son_MIb = np.zeros(N1)
+Son_FA = np.zeros(N1)
+Son_RE = np.zeros(N1)
+#j = 0
+#while j < N1:
+#    w1 = 2 * np.pi * (j/N1)*Fs1
+#    w2 = 2 * np.pi * freq_peaks2
+#    Son_Guitar[j] = Somme_amp_signal1 * np.sin(w1 * (j / Fs1) + Somme_xphase)  # *EnvTemp1[0:32]
+#    j = j+1
+grandeur = 60000
+Son_LaD = (Somme_SinusLaD*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_SOL = (Somme_SinusSol*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_MIb = (Somme_SinusMIb*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_FA = (Somme_SinusFA*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+Son_RE = (Somme_SinusRE*(1/1000)*EnvTemp1[0:N1])[0:grandeur]
+#Son_Basson = amp_signal2*np.sin(w2 + yphase)*EnvTemp2
 
+chanson = np.concatenate((Son_SOL, Son_SOL, Son_SOL, Son_MIb, np.zeros(grandeur), Son_FA, Son_FA, Son_FA, Son_RE))
 #plt.figure()
-#plt.plot(np.fft.fftshift(np.abs(x)))
+#plt.plot(chanson)
 
-#plt.plot(np.fft.fftshift(np.abs(y)))
-#plt.plot(xphase)
+sf.write('son_synth_guitar.wav', chanson, samplerate=Fs1)
+#sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
 plt.show()
-print(Son_Guitar)
-sf.write('son_synth_guitar.wav', Son_Guitar, samplerate=len(Son_Guitar))
-#sf.write('son_filtre_basson.wav', Son_Basson, samplerate=len(Son_Basson))
 
-#plt.show()
+
+
+#====================================================================
+#
+#
+#
+#====================================================================
