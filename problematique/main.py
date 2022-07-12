@@ -68,6 +68,9 @@ N = 1024
 Filtre_cp = 1 -(K_cp/(N/2))*np.cos(K_cp*np.pi/8*n_cp[0])
 Filtre_cp = 0 - ((np.sin(K_cp*np.pi*n_cp[1:N]/N)/np.sin(np.pi*n_cp[1:N]/N))/(N/2))*np.cos(K_cp*np.pi/8*n_cp[1:N])
 signal2filtre = signal2 #np.convolve(np,abs(signal2, Filtre_cp))
+plt.figure()
+plt.plot(Filtre_cp)
+
 #====================================================================
 #
 #
