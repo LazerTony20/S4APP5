@@ -43,7 +43,7 @@ def show_filtre_PB_FIR():
 
 # ====================================================================
 def apply_window(signal_lenght, signal):
-    w = np.hamming(signal_lenght)
+    w = np.hamming(signal.size)
     signal_fenetre = signal * w
     return signal_fenetre
 
@@ -70,10 +70,12 @@ def aff_para_signaux(signal1_lenght, signal1phase, amp_signal1, signal1_amplitud
     plt.plot(signal2_peaks[0:32], 20 * np.log10(signal2_amplitude), 'X')
 
 
+# ====================================================================
 def aff_enveloppe(titre_window, signal, EnvTemp):
     plt.figure(titre_window)
     plt.plot(signal)
     plt.plot(EnvTemp)
+
 
 # ====================================================================
 def aff_para_ffts(signal1_lenght, signal1_fft, signal2_lenght, signal2_fft):
@@ -131,7 +133,7 @@ signal2fenetre = apply_window(signal2_lenght, signal2)
 #
 # ====================================================================
 # Déterminer graphiquement la valeur de l'ordre du filtre
-show_filtre_PB_FIR()
+# show_filtre_PB_FIR()
 K = 885
 # ====================================================================
 #
@@ -140,19 +142,25 @@ K = 885
 # ====================================================================
 # Filtre coupe-Bande du signal 2
 w0 = 1000
-w1 = (1020 - 980) / 2
+#w1 = (1020 - 980) / 2
 N = 1024
 delta = np.zeros(N - 2)
 delta[0] = 1
 n1 = np.arange(1, N - 1, 1)
-hlp = (1 / N) * (np.sin(np.pi * n1 * N / 2) / np.sin(np.pi * n1 / 2))
-hbs = delta - 2 * hlp * np.cos(w0 * n1)
+
+# hlp = (1 / N) * (np.sin(np.pi * n1 * N / 2) / np.sin(np.pi * n1 / 2))
+hbs = delta - (2 * n1/N * np.cos(w0 * n1))
 # eee = np.fft.fft(hbs)
 # ree = np.fft.fft(signal2)
+
 gee = np.convolve(hbs, signal2fenetre)
+#gee = np.convolve(hbs, gee)
 signal2filtre = (np.fft.fft(gee))[0:signal2_lenght]
-plt.figure()
-plt.plot(signal2filtre)
+plt.figure('Signal 2 Filtré')
+plt.subplot(211)
+plt.plot(signal2fenetre)
+plt.subplot(212)
+plt.plot(gee)
 # ====================================================================
 #
 #
@@ -160,9 +168,9 @@ plt.plot(signal2filtre)
 # ====================================================================
 # Enveloppe Temporelle
 EnvTemp1 = np.convolve(np.abs(signal1), (np.ones(K) / K))
-EnvTemp2 = np.convolve(np.abs(signal2filtre), (np.ones(K) / K))
+EnvTemp2 = np.convolve(np.abs(gee), (np.ones(K) / K))
 aff_enveloppe('Enveloppe Temporelle Signal LaD', signal1, EnvTemp1)
-aff_enveloppe('Enveloppe Temporelle Signal Basson', signal2filtre, EnvTemp2)
+aff_enveloppe('Enveloppe Temporelle Signal Basson', gee, EnvTemp2)
 
 # ====================================================================
 #
@@ -228,8 +236,8 @@ Son_vide = np.zeros(grandeur)
 # Son_Basson = amp_signal2*np.sin(w2 + signal2phase)*EnvTemp2
 
 chanson = np.concatenate((Son_SOL, Son_SOL, Son_SOL, Son_MIb, Son_vide, Son_FA, Son_FA, Son_FA, Son_RE))
-plt.figure()
-plt.plot(chanson)
+#plt.figure()
+#plt.plot(chanson)
 # ====================================================================
 #
 #
@@ -238,3 +246,4 @@ plt.plot(chanson)
 sf.write('son_synth_guitar.wav', chanson, samplerate=Fs1)
 # sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
 plt.show()
+
