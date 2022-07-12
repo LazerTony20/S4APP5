@@ -70,6 +70,11 @@ def aff_para_signaux(signal1_lenght, signal1phase, amp_signal1, signal1_amplitud
     plt.plot(signal2_peaks[0:32], 20 * np.log10(signal2_amplitude), 'X')
 
 
+def aff_enveloppe(titre_window, signal, EnvTemp):
+    plt.figure(titre_window)
+    plt.plot(signal)
+    plt.plot(EnvTemp)
+
 # ====================================================================
 def aff_para_ffts(signal1_lenght, signal1_fft, signal2_lenght, signal2_fft):
     plt.figure('FFTs')
@@ -156,12 +161,9 @@ plt.plot(signal2filtre)
 # Enveloppe Temporelle
 EnvTemp1 = np.convolve(np.abs(signal1), (np.ones(K) / K))
 EnvTemp2 = np.convolve(np.abs(signal2filtre), (np.ones(K) / K))
-plt.figure('Enveloppe Temporelle Signal LaD')
-plt.plot(signal1)
-plt.plot(EnvTemp1)
-plt.figure('Enveloppe Temporelle Signal Basson')
-plt.plot(signal2filtre)
-plt.plot(EnvTemp2)
+aff_enveloppe('Enveloppe Temporelle Signal LaD', signal1, EnvTemp1)
+aff_enveloppe('Enveloppe Temporelle Signal Basson', signal2filtre, EnvTemp2)
+
 # ====================================================================
 #
 #
@@ -216,7 +218,7 @@ Freq_FA = 0.749 * signal1_frequences
 Freq_RE = 0.630 * signal1_frequences
 
 # Compilation des sons
-grandeur = 60000
+grandeur = 40000
 Son_LaD = create_note(grandeur, N1, signal1_amplitude, signal1_frequences, signal1phase, EnvTemp1)
 Son_SOL = create_note(grandeur, N1, signal1_amplitude, Freq_SOL, signal1phase, EnvTemp1)
 Son_MIb = create_note(grandeur, N1, signal1_amplitude, Freq_MIb, signal1phase, EnvTemp1)
