@@ -1,12 +1,10 @@
 # ====================================================================
 # ====================================================================
 # Auteurs       : Jérémy Goulet et Anthony Royer
+# CIPs          : Gouj2711 et Roya2019
 # Projet        : Problématique APP5 S4 Génie Électrique
 # Date          : 2022-07-11
-# Commentaires  :
-#                 dirak dans le temps c juste un 1 a la position zéro
-#                 et le reste des zéros
-#
+# Commentaires  : You know, I'm Something of a Scientist Myself
 # ====================================================================
 # ====================================================================
 #
@@ -15,11 +13,10 @@
 # ====================================================================
 # Imports de librairies
 import numpy as np
+import csv
 import soundfile as sf
 import matplotlib.pyplot as plt
 import scipy.signal as sci
-
-
 # ====================================================================
 #
 #
@@ -29,21 +26,25 @@ import scipy.signal as sci
 # Zone de mes fonctions
 def show_filtre_PB_FIR():
     omega = np.pi / 1000
-    MaxK = 10000
+    MaxK = 8000
     Kpts = np.arange(1, MaxK, 1)  # numpy.arange(start, stop, step, dtype)
     plt.figure("Graphique de l'ordre")
     Xomega = (1 / Kpts) * (np.sin(omega * Kpts / 2) / np.sin(omega / 2))
     GainM3dB = 0.707 * (Kpts / Kpts)
-    plt.axvline(885, color='red', label='N ordre')
+    plt.axvline(885, color='red', label='K = 885')
     plt.plot(np.abs(Xomega))
     plt.ylim(0, 1)
     plt.xlim(0, MaxK)
-    plt.plot(Kpts, GainM3dB)
+    plt.title("Gain (DC) selon l'ordre")
+    plt.xlabel('Ordre N')
+    plt.ylabel('Gain (DC)')
+    plt.plot(Kpts, GainM3dB, label='0.707')
+    plt.legend(loc='best')
 
 
 # ====================================================================
 def apply_window(signal_lenght, signal):
-    w = np.hamming(signal.size)
+    w = np.hamming(signal_lenght)
     signal_fenetre = signal * w
     return signal_fenetre
 
@@ -101,11 +102,31 @@ def create_son(signal_lenght, signal_amplitude, signal_frequence, signal_phase):
 
 
 # ====================================================================
-def create_note(longueur, signal_lenght, signal_amplitude, signal_freq, signalphase, EnvTemp):
+def create_note(longueur, signal_lenght, signal_amplitude, signal_freq, signalphase, EnvTemp, force):
     son_note = np.zeros(signal_lenght)
     somme_sinus = create_son(signal_lenght, signal_amplitude, signal_freq, signalphase)
-    son_note = (somme_sinus * (1 / 1000) * EnvTemp[0:signal_lenght])[0:longueur]
+    son_note = (somme_sinus * (1 / force) * EnvTemp[0:signal_lenght])[0:longueur]
     return son_note
+
+
+# ====================================================================
+def ecriture_csv(Nb, signalFrequences, signalAmplitude, signalPhase):
+    header = ['No', 'Fréquence', 'Amplitude', 'Phase']
+    f = open('harmoniques.csv', 'w', encoding='UTF8', newline='')  # Open file in write mode
+    writer = csv.writer(f)  # Create the csv writer
+    i = 0
+    data = np.zeros((Nb, 4))
+    while i < Nb:
+        data[i][0] = int(i)
+        data[i][1] = round(signalFrequences[i], 3)
+        data[i][2] = round(signalAmplitude[i], 4)
+        data[i][3] = round(signalPhase[i], 4)
+        i = i + 1
+    #write the header
+    writer.writerow(header)
+    #write the data
+    writer.writerows(data)
+    f.close()  # close the file
 
 
 # ====================================================================
@@ -125,15 +146,20 @@ signal2, Fs2 = sf.read('note_basson_plus_sinus_1000_Hz.wav')
 # Application de ma fenêtre
 signal1_lenght = len(signal1)  # 160'000
 signal1fenetre = apply_window(signal1_lenght, signal1)
-signal2_lenght = len(signal2)  # 135'051
+signal2_lenght = signal2.size  # 135'051
 signal2fenetre = apply_window(signal2_lenght, signal2)
+plt.figure('Fenêtre signal 2')
+plt.subplot(211)
+plt.plot(signal2)
+plt.subplot(212)
+plt.plot(signal2fenetre)
 # ====================================================================
 #
 #
 #
 # ====================================================================
 # Déterminer graphiquement la valeur de l'ordre du filtre
-# show_filtre_PB_FIR()
+show_filtre_PB_FIR()
 K = 885
 # ====================================================================
 #
@@ -141,36 +167,39 @@ K = 885
 #
 # ====================================================================
 # Filtre coupe-Bande du signal 2
-w0 = 1000
-#w1 = (1020 - 980) / 2
+w1 = (1020 - 980) / 2
+w0 = (2 * np.pi * (w1 + 980))/44100
 N = 1024
-delta = np.zeros(N - 2)
+delta = np.zeros(N)
 delta[0] = 1
-n1 = np.arange(1, N - 1, 1)
-
+n1 = np.arange(0, N, 1)
 # hlp = (1 / N) * (np.sin(np.pi * n1 * N / 2) / np.sin(np.pi * n1 / 2))
-hbs = delta - (2 * n1/N * np.cos(w0 * n1))
-# eee = np.fft.fft(hbs)
-# ree = np.fft.fft(signal2)
-
-gee = np.convolve(hbs, signal2fenetre)
-#gee = np.convolve(hbs, gee)
-signal2filtre = (np.fft.fft(gee))[0:signal2_lenght]
+hbs = delta - (2 * n1/(K*N) * np.cos(w0 * n1))
+signal2filtre = np.convolve(hbs, signal2fenetre)
+signal2filtre = np.convolve(hbs, signal2filtre)
+signal2filtre = np.convolve(hbs, signal2filtre)
+signal2filtre = np.convolve(hbs, signal2filtre)
+signal2filtre = np.convolve(hbs, signal2filtre)
+plt.figure('Réponse impulsion h[n] du Coupe-Bande')
+plt.plot(hbs)
+plt.title('Réponse impulsion h[n] du Coupe-Bande')
+plt.xlabel('categories')
+plt.ylabel('values')
 plt.figure('Signal 2 Filtré')
 plt.subplot(211)
 plt.plot(signal2fenetre)
 plt.subplot(212)
-plt.plot(gee)
+plt.plot(signal2filtre)
 # ====================================================================
 #
 #
 #
 # ====================================================================
 # Enveloppe Temporelle
-EnvTemp1 = np.convolve(np.abs(signal1), (np.ones(K) / K))
-EnvTemp2 = np.convolve(np.abs(gee), (np.ones(K) / K))
+EnvTemp1 = np.convolve(np.abs(signal1fenetre), (np.ones(K) / K))
+EnvTemp2 = np.convolve(np.abs(signal2filtre), (np.ones(K) / K))
 aff_enveloppe('Enveloppe Temporelle Signal LaD', signal1, EnvTemp1)
-aff_enveloppe('Enveloppe Temporelle Signal Basson', gee, EnvTemp2)
+aff_enveloppe('Enveloppe Temporelle Signal Basson', signal2filtre, EnvTemp2)
 
 # ====================================================================
 #
@@ -179,7 +208,7 @@ aff_enveloppe('Enveloppe Temporelle Signal Basson', gee, EnvTemp2)
 # ====================================================================
 # Application de mes FFT
 signal1_fft = np.fft.fft(signal1fenetre)
-signal2_fft = np.fft.fft(signal2fenetre)
+signal2_fft = np.fft.fft(signal2filtre)
 # Affichage
 aff_para_ffts(signal1_lenght, signal1_fft, signal2_lenght, signal2_fft)
 # ====================================================================
@@ -226,24 +255,29 @@ Freq_FA = 0.749 * signal1_frequences
 Freq_RE = 0.630 * signal1_frequences
 
 # Compilation des sons
-grandeur = 40000
-Son_LaD = create_note(grandeur, N1, signal1_amplitude, signal1_frequences, signal1phase, EnvTemp1)
-Son_SOL = create_note(grandeur, N1, signal1_amplitude, Freq_SOL, signal1phase, EnvTemp1)
-Son_MIb = create_note(grandeur, N1, signal1_amplitude, Freq_MIb, signal1phase, EnvTemp1)
-Son_FA = create_note(grandeur, N1, signal1_amplitude, Freq_FA, signal1phase, EnvTemp1)
-Son_RE = create_note(grandeur, N1, signal1_amplitude, Freq_RE, signal1phase, EnvTemp1)
+grandeur = 30000
+force1 = 1000
+Son_LaD = create_note(grandeur, N1, signal1_amplitude, signal1_frequences, signal1phase, EnvTemp1, force1)
+Son_SOL = create_note(grandeur, N1, signal1_amplitude, Freq_SOL, signal1phase, EnvTemp1, force1)
+Son_MIb = create_note(grandeur, N1, signal1_amplitude, Freq_MIb, signal1phase, EnvTemp1, force1)
+Son_FA = create_note(grandeur, N1, signal1_amplitude, Freq_FA, signal1phase, EnvTemp1, force1)
+Son_RE = create_note(grandeur, N1, signal1_amplitude, Freq_RE, signal1phase, EnvTemp1, force1)
 Son_vide = np.zeros(grandeur)
-# Son_Basson = amp_signal2*np.sin(w2 + signal2phase)*EnvTemp2
-
+grandeur2 = N2 - 13500
+force2 = 2000
+Son_Basson = create_note(grandeur2, N2, signal2_amplitude, signal2_frequences, signal2phase, EnvTemp2, force2)
 chanson = np.concatenate((Son_SOL, Son_SOL, Son_SOL, Son_MIb, Son_vide, Son_FA, Son_FA, Son_FA, Son_RE))
-#plt.figure()
-#plt.plot(chanson)
+plt.figure('Chanson Finale')
+plt.plot(chanson)
 # ====================================================================
 #
 #
 #
 # ====================================================================
+#Génération
+ecriture_csv(32, signal1_frequences, signal1_amplitude, signal1Phases_peaks)
 sf.write('son_synth_guitar.wav', chanson, samplerate=Fs1)
-# sf.write('son_filtre_basson.wav', Son_Basson, samplerate=Fs2)
+sf.write('son_filtre_basson.wav', signal2filtre[0:grandeur2], samplerate=Fs2)
+sf.write('son_synth_basson.wav', Son_Basson, samplerate=Fs2)
 plt.show()
 
