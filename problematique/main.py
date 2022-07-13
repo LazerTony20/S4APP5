@@ -52,6 +52,8 @@ def apply_window(signal_lenght, signal):
 # ====================================================================
 def aff_para_signaux(signal1_lenght, signal1phase, amp_signal1, signal1_amplitude, signal1_peaks, signal2_lenght, signal2phase, amp_signal2, signal2_amplitude, signal2_peaks):
     # Affichage
+    #freq1s = 44100 / np.arange(signal1_lenght)
+    #freq1s = 44100 / np.arange(signal1_lenght)
     plt.figure('Phases')
     plt.subplot(211)
     plt.xlim(0, signal1_lenght)
@@ -66,7 +68,7 @@ def aff_para_signaux(signal1_lenght, signal1phase, amp_signal1, signal1_amplitud
     plt.plot(20 * np.log10(amp_signal1))
     plt.plot(signal1_peaks[0:32], 20 * np.log10(signal1_amplitude), 'X')
     plt.subplot(212)
-    # plt.xlim(0, signal2_lenght)
+    plt.xlim(0, signal2_lenght)
     plt.plot(20 * np.log10(amp_signal2))
     plt.plot(signal2_peaks[0:32], 20 * np.log10(signal2_amplitude), 'X')
 
@@ -74,27 +76,36 @@ def aff_para_signaux(signal1_lenght, signal1phase, amp_signal1, signal1_amplitud
 # ====================================================================
 def aff_enveloppe(titre_window, signal, EnvTemp):
     plt.figure(titre_window)
-    plt.plot(signal)
-    plt.plot(EnvTemp)
+    plt.title(titre_window)
+    x = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
+    # xi1 = list(range(len(signal)))
+    xi2 = list(range(len(EnvTemp)))
+
+    plt.xlabel('Échantillon')
+    plt.ylabel('Décibels (dB)')
+    #plt.plot(xi1, 20*np.log10(signal))
+    # plt.xticks(xi2, x)
+    plt.plot(20*np.log10(EnvTemp))
 
 
 # ====================================================================
 def aff_para_ffts(signal1_lenght, signal1_fft, signal2_lenght, signal2_fft):
     plt.figure('FFTs')
     plt.subplot(211)
-    plt.xlim(0, signal1_lenght)
-    plt.plot(20*np.log10(signal1_fft))   #subplot(nrows, ncols, index, **kwargs)
+    freqs = 44100 / np.arange(signal1_fft.size)
+    #plt.xlim(0, signal1_lenght)
+    plt.plot(freqs, 20*np.log10(signal1_fft))   #subplot(nrows, ncols, index, **kwargs)
     plt.subplot(212)
     plt.xlim(0, signal2_lenght)
     plt.plot(20*np.log10(signal2_fft))   #subplot(nrows, ncols, index, **kwargs)
 
 
 # ====================================================================
-def create_son(signal_lenght, signal_amplitude, signal_frequence, signal_phase):
+def create_son(signal_lenght, signal_amplitude, signal_frequence, signal_phase, nbHarmo):
     i = 1
     n = np.arange(signal_lenght)
     somme_sin = signal_amplitude[0] * np.sin(2 * np.pi * signal_frequence[0] * (n / Fs1) + signal_phase[0])
-    while i < 31:
+    while i < nbHarmo:
         temp_var = signal_amplitude[i] * np.sin(2 * np.pi * signal_frequence[i] * (n / Fs1) + signal_phase[i])
         somme_sin = somme_sin + temp_var
         i = i + 1
@@ -102,9 +113,9 @@ def create_son(signal_lenght, signal_amplitude, signal_frequence, signal_phase):
 
 
 # ====================================================================
-def create_note(longueur, signal_lenght, signal_amplitude, signal_freq, signalphase, EnvTemp, force):
+def create_note(longueur, signal_lenght, signal_amplitude, signal_freq, signalphase, EnvTemp, force, nbHarm):
     son_note = np.zeros(signal_lenght)
-    somme_sinus = create_son(signal_lenght, signal_amplitude, signal_freq, signalphase)
+    somme_sinus = create_son(signal_lenght, signal_amplitude, signal_freq, signalphase, nbHarm)
     son_note = (somme_sinus * (1 / force) * EnvTemp[0:signal_lenght])[0:longueur]
     return son_note
 
@@ -135,6 +146,14 @@ def ecriture_csv(Nb, signalFrequences, signalAmplitude, signalPhase):
 #
 #
 # ====================================================================
+# Variables
+K = 885
+nbHarmoniques = 32
+# ====================================================================
+#
+#
+#
+# ====================================================================
 # Importer mes signaux de mes 2 fichiers
 signal1, Fs1 = sf.read('note_guitare_LAd.wav')
 signal2, Fs2 = sf.read('note_basson_plus_sinus_1000_Hz.wav')
@@ -160,7 +179,6 @@ plt.plot(signal2fenetre)
 # ====================================================================
 # Déterminer graphiquement la valeur de l'ordre du filtre
 show_filtre_PB_FIR()
-K = 885
 # ====================================================================
 #
 #
@@ -183,8 +201,8 @@ signal2filtre = np.convolve(hbs, signal2filtre)
 plt.figure('Réponse impulsion h[n] du Coupe-Bande')
 plt.plot(hbs)
 plt.title('Réponse impulsion h[n] du Coupe-Bande')
-plt.xlabel('categories')
-plt.ylabel('values')
+plt.xlabel('Échantillons')
+plt.ylabel('Réponse')
 plt.figure('Signal 2 Filtré')
 plt.subplot(211)
 plt.plot(signal2fenetre)
@@ -196,7 +214,7 @@ plt.plot(signal2filtre)
 #
 # ====================================================================
 # Enveloppe Temporelle
-EnvTemp1 = np.convolve(np.abs(signal1fenetre), (np.ones(K) / K))
+EnvTemp1 = np.convolve(np.abs(signal1), (np.ones(K) / K))
 EnvTemp2 = np.convolve(np.abs(signal2filtre), (np.ones(K) / K))
 aff_enveloppe('Enveloppe Temporelle Signal LaD', signal1, EnvTemp1)
 aff_enveloppe('Enveloppe Temporelle Signal Basson', signal2filtre, EnvTemp2)
@@ -207,7 +225,7 @@ aff_enveloppe('Enveloppe Temporelle Signal Basson', signal2filtre, EnvTemp2)
 #
 # ====================================================================
 # Application de mes FFT
-signal1_fft = np.fft.fft(signal1fenetre)
+signal1_fft = np.fft.fft(signal1)
 signal2_fft = np.fft.fft(signal2filtre)
 # Affichage
 aff_para_ffts(signal1_lenght, signal1_fft, signal2_lenght, signal2_fft)
@@ -226,20 +244,20 @@ signal2_peaks, _ = sci.find_peaks(20 * np.log10(signal2_fft), distance=500)
 # Conversion des INDEX en Hz
 freq_peaks1 = np.fft.fftfreq(N1, d=(1 / Fs1))  # (peaks1[1:33]/N1)*Fs1
 freq_peaks2 = np.fft.fftfreq(N2, d=(1 / Fs2))
-signal1_frequences = freq_peaks1[signal1_peaks[0:32]]
-signal2_frequences = freq_peaks2[signal2_peaks[0:32]]
+signal1_frequences = freq_peaks1[signal1_peaks[0:nbHarmoniques]]
+signal2_frequences = freq_peaks2[signal2_peaks[0:nbHarmoniques]]
 
 # Phase
 signal1phase = np.angle(signal1_fft)
 signal2phase = np.angle(signal2_fft)
-signal1Phases_peaks = signal1phase[signal1_peaks[0:32]]
-signal2Phases_peaks = signal2phase[signal2_peaks[0:32]]
+signal1Phases_peaks = signal1phase[signal1_peaks[0:nbHarmoniques]]
+signal2Phases_peaks = signal2phase[signal2_peaks[0:nbHarmoniques]]
 
 # Amplitude
 amp_signal1 = np.abs(signal1_fft)
 amp_signal2 = np.abs(signal2_fft)
-signal1_amplitude = amp_signal1[signal1_peaks[0:32]]
-signal2_amplitude = amp_signal2[signal2_peaks[0:32]]
+signal1_amplitude = amp_signal1[signal1_peaks[0:nbHarmoniques]]
+signal2_amplitude = amp_signal2[signal2_peaks[0:nbHarmoniques]]
 
 # Affichage
 aff_para_signaux(signal1_lenght, signal1phase, amp_signal1, signal1_amplitude, signal1_peaks, signal2_lenght, signal2phase, amp_signal2, signal2_amplitude, signal2_peaks)
@@ -257,15 +275,15 @@ Freq_RE = 0.630 * signal1_frequences
 # Compilation des sons
 grandeur = 30000
 force1 = 1000
-Son_LaD = create_note(grandeur, N1, signal1_amplitude, signal1_frequences, signal1phase, EnvTemp1, force1)
-Son_SOL = create_note(grandeur, N1, signal1_amplitude, Freq_SOL, signal1phase, EnvTemp1, force1)
-Son_MIb = create_note(grandeur, N1, signal1_amplitude, Freq_MIb, signal1phase, EnvTemp1, force1)
-Son_FA = create_note(grandeur, N1, signal1_amplitude, Freq_FA, signal1phase, EnvTemp1, force1)
-Son_RE = create_note(grandeur, N1, signal1_amplitude, Freq_RE, signal1phase, EnvTemp1, force1)
+Son_LaD = create_note(grandeur, N1, signal1_amplitude, signal1_frequences, signal1phase, EnvTemp1, force1, nbHarmoniques)
+Son_SOL = create_note(grandeur, N1, signal1_amplitude, Freq_SOL, signal1phase, EnvTemp1, force1, nbHarmoniques)
+Son_MIb = create_note(grandeur, N1, signal1_amplitude, Freq_MIb, signal1phase, EnvTemp1, force1, nbHarmoniques)
+Son_FA = create_note(grandeur, N1, signal1_amplitude, Freq_FA, signal1phase, EnvTemp1, force1, nbHarmoniques)
+Son_RE = create_note(grandeur, N1, signal1_amplitude, Freq_RE, signal1phase, EnvTemp1, force1, nbHarmoniques)
 Son_vide = np.zeros(grandeur)
 grandeur2 = N2 - 13500
 force2 = 2000
-Son_Basson = create_note(grandeur2, N2, signal2_amplitude, signal2_frequences, signal2phase, EnvTemp2, force2)
+Son_Basson = create_note(grandeur2, N2, signal2_amplitude, signal2_frequences, signal2phase, EnvTemp2, force2, nbHarmoniques)
 chanson = np.concatenate((Son_SOL, Son_SOL, Son_SOL, Son_MIb, Son_vide, Son_FA, Son_FA, Son_FA, Son_RE))
 plt.figure('Chanson Finale')
 plt.plot(chanson)
@@ -275,7 +293,28 @@ plt.plot(chanson)
 #
 # ====================================================================
 #Génération
-ecriture_csv(32, signal1_frequences, signal1_amplitude, signal1Phases_peaks)
+plt.figure('Spectres de fourrier')
+plt.subplot(211)
+freqs = 44100 / np.arange(signal1_fft.size)
+plt.title('Signal Original')
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Decibels (DB)')
+#plt.xlim(0, signal1_lenght)
+plt.plot(freqs, 20*np.log10(signal1_fft))   #subplot(nrows, ncols, index, **kwargs)
+sonLaDfft = np.fft.fft(Son_LaD)
+plt.subplot(212)
+freqs = 44100 / np.arange(sonLaDfft.size)
+plt.title('Signal Synthétisé')
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Decibels (DB)')
+plt.plot(freqs, 20*np.log10(sonLaDfft))   #subplot(nrows, ncols, index, **kwargs)
+
+
+#=================
+# Affichage
+
+
+#ecriture_csv(nbHarmoniques, signal1_frequences, signal1_amplitude, signal1Phases_peaks)
 sf.write('son_synth_guitar.wav', chanson, samplerate=Fs1)
 sf.write('son_filtre_basson.wav', signal2filtre[0:grandeur2], samplerate=Fs2)
 sf.write('son_synth_basson.wav', Son_Basson, samplerate=Fs2)
